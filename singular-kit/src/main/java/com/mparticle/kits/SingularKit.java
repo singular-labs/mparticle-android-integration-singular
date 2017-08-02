@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.util.Log;
 
 import com.mparticle.DeepLinkListener;
 import com.mparticle.DeepLinkResult;
@@ -19,14 +18,16 @@ import com.singular.sdk.SingularConfig;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONObject;
+
 
 public class SingularKit extends KitIntegration implements KitIntegration.ActivityListener, KitIntegration.EventListener, KitIntegration.PushListener, DeferredDeepLinkHandler {
 
     private static final String API_KEY = "apiKey";
     private static final String API_SECRET = "secret";
     private static final String DDL_TIME_OUT = "ddlTimeout";
-    String apsalarKey;
-    String apsalarSecret;
+    String singularKey;
+    String singularSecret;
     SingularConfig config;
     long DDL_HANDLER_TIMEOUT_SEC = 60L;
 
@@ -34,8 +35,8 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
 
     @Override
     protected List<ReportingMessage> onKitCreate(Map<String, String> settings, Context context) {
-        apsalarKey = settings.get(API_KEY);
-        apsalarSecret = settings.get(API_SECRET);
+        singularKey = settings.get(API_KEY);
+        singularSecret = settings.get(API_SECRET);
         String ddlTimeout = settings.get(DDL_TIME_OUT);
         if (!TextUtils.isEmpty(ddlTimeout)) {
             try {
@@ -44,7 +45,7 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
             }
         }
         this.context = context;
-        config = new SingularConfig(apsalarKey, apsalarSecret);
+        config = new SingularConfig(singularKey, singularSecret);
         config.withDDLTimeoutInSec(DDL_HANDLER_TIMEOUT_SEC);
         config.withDDLHandler(this);
         Singular.init(context, config);
@@ -117,7 +118,12 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
     public List<ReportingMessage> logEvent(MPEvent mpEvent) {
         String eventName = mpEvent.getEventName();
         Map eventInfo = mpEvent.getInfo();
-        Singular.event(eventName, eventInfo);
+        if (eventInfo != null) {
+            JSONObject params = new JSONObject(eventInfo);
+            Singular.event(eventName, params.toString());
+        } else {
+            Singular.event(eventName);
+        }
         return null;
     }
 
