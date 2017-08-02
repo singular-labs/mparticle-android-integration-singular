@@ -1,0 +1,20 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.mparticle:android-kit-plugin:+'
+    }
+}
+project.version = '4.15.1-SNAPSHOT'
+apply plugin: 'com.mparticle.kit'
+
+dependencies {
+    compile files('libs/SingularSDK-6.6.1.jar')
+}
+
+android {
+    compileSdkVersion 22
+    buildToolsVersion '25.0.2'
+}
