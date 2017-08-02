@@ -11,7 +11,7 @@ project.version = '4.15.1-SNAPSHOT'
 apply plugin: 'com.mparticle.kit'
 
 dependencies {
-    compile files('libs/SingularSDK-6.6.1.jar')
+    compile files('libs/Singular-v7.0.1-c301d3db.SDK-12-release.jar')
 }
 
 android {
