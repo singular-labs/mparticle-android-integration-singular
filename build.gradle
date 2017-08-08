@@ -1,17 +1,24 @@
 buildscript {
     repositories {
-        mavenLocal()
         mavenCentral()
+        mavenLocal()
     }
     dependencies {
         classpath 'com.mparticle:android-kit-plugin:+'
     }
 }
+
 project.version = '4.15.1-SNAPSHOT'
 apply plugin: 'com.mparticle.kit'
 
+repositories {
+    maven {
+        url 'http://maven.singular.net'
+    }
+}
+
 dependencies {
-    compile files('libs/Singular-v7.0.1-a2010e8.master-release.jar')
+    compile 'com.singular.sdk:singular_sdk:7.0.1'
 }
 
 android {
