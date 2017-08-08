@@ -4,6 +4,15 @@ This repository contains the [Singular](https://www.singular.net/) integration f
 
 ### Adding the integration
 
+1. The singular Kit requires that you add singular's Maven server to your buildscript:
+
+    ```
+    repositories {
+        maven { url "http://maven.singular.net"}
+        ...
+    }
+    ```
+
 1. Add the kit dependency to your app's build.gradle:
 
     ```groovy
