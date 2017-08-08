@@ -4,24 +4,30 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.TextUtils;
+import android.util.Log;
 
 import com.mparticle.DeepLinkListener;
 import com.mparticle.DeepLinkResult;
 import com.mparticle.MPEvent;
 import com.mparticle.MParticle;
+import com.mparticle.commerce.CommerceEvent;
+import com.mparticle.commerce.Product;
 import com.mparticle.internal.MPUtility;
 import com.singular.sdk.DeferredDeepLinkHandler;
 import com.singular.sdk.Singular;
 import com.singular.sdk.SingularConfig;
+import com.singular.sdk.SingularInstallReceiver;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.json.JSONObject;
 
 
-public class SingularKit extends KitIntegration implements KitIntegration.ActivityListener, KitIntegration.EventListener, KitIntegration.PushListener, DeferredDeepLinkHandler {
+public class SingularKit extends KitIntegration implements KitIntegration.ActivityListener, KitIntegration.EventListener, KitIntegration.PushListener, KitIntegration.CommerceListener, DeferredDeepLinkHandler {
 
     private static final String API_KEY = "apiKey";
     private static final String API_SECRET = "secret";
@@ -30,26 +36,38 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
     String singularSecret;
     SingularConfig config;
     long DDL_HANDLER_TIMEOUT_SEC = 60L;
+    String currency;
+    double amount;
+    String productSKU;
+    String productName;
+    String productCategory;
+    double productQuantity;
+    double productPrice;
 
-    Context context;
+    boolean eventStatus;
 
     @Override
     protected List<ReportingMessage> onKitCreate(Map<String, String> settings, Context context) {
         singularKey = settings.get(API_KEY);
         singularSecret = settings.get(API_SECRET);
         String ddlTimeout = settings.get(DDL_TIME_OUT);
-        if (!TextUtils.isEmpty(ddlTimeout)) {
+        if (!KitUtils.isEmpty(ddlTimeout)) {
             try {
                 DDL_HANDLER_TIMEOUT_SEC = Long.parseLong(ddlTimeout);
             } catch (Exception unableToGetDDLTimeout) {
             }
         }
-        this.context = context;
         config = new SingularConfig(singularKey, singularSecret);
         config.withDDLTimeoutInSec(DDL_HANDLER_TIMEOUT_SEC);
         config.withDDLHandler(this);
+        if (MParticle.getInstance().getEnvironment() == MParticle.Environment.Development) {
+            config.withLoggingEnabled();
+            config.withLogLevel(Log.DEBUG);
+        }
         Singular.init(context, config);
-        return null;
+        List<ReportingMessage> messages = new ArrayList<ReportingMessage>();
+        messages.add(new ReportingMessage(this, ReportingMessage.MessageType.APP_STATE_TRANSITION, System.currentTimeMillis(), null));
+        return messages;
     }
 
     @Override
@@ -116,15 +134,21 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
 
     @Override
     public List<ReportingMessage> logEvent(MPEvent mpEvent) {
+        List<ReportingMessage> messages = new LinkedList<ReportingMessage>();
         String eventName = mpEvent.getEventName();
         Map eventInfo = mpEvent.getInfo();
         if (eventInfo != null) {
             JSONObject params = new JSONObject(eventInfo);
-            Singular.event(eventName, params.toString());
+            eventStatus = Singular.event(eventName, params.toString());
         } else {
-            Singular.event(eventName);
+            eventStatus = Singular.event(eventName);
         }
-        return null;
+        if (eventStatus) {
+            messages.add(ReportingMessage.fromEvent(this, mpEvent));
+        } else {
+            messages.add(new ReportingMessage(this, ReportingMessage.MessageType.ERROR, System.currentTimeMillis(), null));
+        }
+        return messages;
     }
 
     @Override
@@ -168,5 +192,44 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
             return false;
         }
         return true;
+    }
+
+    @Override
+    public void setInstallReferrer(Intent intent) {
+        new SingularInstallReceiver().onReceive(getContext(), intent);
+    }
+
+
+    @Override
+    public List<ReportingMessage> logLtvIncrease(BigDecimal bigDecimal, BigDecimal bigDecimal1, String s, Map<String, String> map) {
+        return null;
+    }
+
+    @Override
+    public List<ReportingMessage> logEvent(CommerceEvent commerceEvent) {
+        List<ReportingMessage> messages = new LinkedList<ReportingMessage>();
+        if (commerceEvent.getProductAction().equals(Product.PURCHASE)) {
+            if (!KitUtils.isEmpty(commerceEvent.getCurrency())) {
+                currency = commerceEvent.getCurrency();
+            }
+            if (commerceEvent.getProducts().size() > 0) {
+                List<Product> productList = commerceEvent.getProducts();
+                for (Product product : productList) {
+                    productPrice = product.getUnitPrice();
+                    productQuantity = product.getQuantity();
+                    if (!KitUtils.isEmpty(product.getSku())) {
+                        productSKU = product.getSku();
+                    }
+                    if (!KitUtils.isEmpty(product.getCategory())) {
+                        productCategory = product.getCategory();
+                    }
+                    productName = product.getName();
+                    amount = product.getTotalAmount();
+                    Singular.revenue(currency, amount, productSKU, productName, productCategory, (int) productQuantity, productPrice);
+                    messages.add(ReportingMessage.fromEvent(this, commerceEvent));
+                }
+            }
+        }
+        return messages;
     }
 }
