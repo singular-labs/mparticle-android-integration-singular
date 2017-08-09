@@ -19,8 +19,10 @@ import com.singular.sdk.Singular;
 import com.singular.sdk.SingularConfig;
 import com.singular.sdk.SingularInstallReceiver;
 
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +30,7 @@ import java.util.Map;
 import org.json.JSONObject;
 
 
-public class SingularKit extends KitIntegration implements KitIntegration.ActivityListener, KitIntegration.EventListener, KitIntegration.PushListener, KitIntegration.CommerceListener, DeferredDeepLinkHandler {
+public class SingularKit extends KitIntegration implements KitIntegration.ActivityListener, KitIntegration.EventListener, KitIntegration.PushListener, KitIntegration.CommerceListener, DeferredDeepLinkHandler, KitIntegration.AttributeListener {
 
     private static final String API_KEY = "apiKey";
     private static final String API_SECRET = "secret";
@@ -46,6 +48,7 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
     double productPrice;
 
     boolean eventStatus;
+    private String mLink;
 
     @Override
     protected List<ReportingMessage> onKitCreate(Map<String, String> settings, Context context) {
@@ -157,8 +160,9 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
 
     @Override
     public void handleLink(String link) {
+        mLink = link;
         DeepLinkListener deepLinkListener = MParticle.getInstance().getDeepLinkListener();
-        if (deepLinkListener != null) {
+        if (deepLinkListener != null && !KitUtils.isEmpty(link)) {
             DeepLinkResult deepLinkResult = new DeepLinkResult();
             deepLinkResult.setServiceProviderId(MParticle.ServiceProviders.SINGULAR);
             deepLinkResult.setLink(link);
@@ -207,7 +211,19 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
     @Override
     public List<ReportingMessage> logEvent(CommerceEvent commerceEvent) {
         List<ReportingMessage> messages = new LinkedList<ReportingMessage>();
-        if (commerceEvent.getProductAction().equals(Product.PURCHASE)) {
+        if (!commerceEvent.getProductAction().equals(Product.PURCHASE)) {
+            List<MPEvent> eventList = CommerceEventUtils.expand(commerceEvent);
+            if (eventList != null) {
+                for (int i = 0; i < eventList.size(); i++) {
+                    try {
+                        logEvent(eventList.get(i));
+                        messages.add(ReportingMessage.fromEvent(this, commerceEvent));
+                    } catch (Exception e) {
+                        Logger.warning("Failed to call logCustomEvent to Singular kit: " + e.toString());
+                    }
+                }
+            }
+        } else {
             if (!KitUtils.isEmpty(commerceEvent.getCurrency())) {
                 currency = commerceEvent.getCurrency();
             }
@@ -227,18 +243,6 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
                     Singular.revenue(currency, amount, productSKU, productName, productCategory, (int) productQuantity, productPrice);
                 }
                 messages.add(ReportingMessage.fromEvent(this, commerceEvent));
-                return messages;
-            }
-        }
-        List<MPEvent> eventList = CommerceEventUtils.expand(commerceEvent);
-        if (eventList != null) {
-            for (int i = 0; i < eventList.size(); i++) {
-                try {
-                    logEvent(eventList.get(i));
-                    messages.add(ReportingMessage.fromEvent(this, commerceEvent));
-                } catch (Exception e) {
-                    Logger.warning("Failed to call logCustomEvent to Singular kit: " + e.toString());
-                }
             }
         }
         return messages;
@@ -246,7 +250,60 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
 
     @Override
     public void checkForDeepLink() {
-        config.withDDLTimeoutInSec(DDL_HANDLER_TIMEOUT_SEC);
-        config.withDDLHandler(this);
+        this.handleLink(mLink);
+        mLink = null;
+    }
+
+    @Override
+    public void setUserAttribute(String key, String value) {
+        Map<String, String> map = new HashMap<String, String>();
+        if (MParticle.UserAttributes.AGE.equals(key)) {
+            map.put("age", value);
+        }  else if (MParticle.UserAttributes.GENDER.equals(key)) {
+            if (value.contains("fe")) {
+                map.put("gender", "f");
+            } else {
+                map.put("gender", "m");
+            }
+        }
+        if (map != null && map.size() > 0) {
+            JSONObject params = new JSONObject(map);
+            Singular.event("UserAttribute", params.toString());
+        }
+    }
+
+    @Override
+    public void setUserAttributeList(String s, List<String> list) {
+
+    }
+
+    @Override
+    public boolean supportsAttributeLists() {
+        return false;
+    }
+
+    @Override
+    public void setAllUserAttributes(Map<String, String> map, Map<String, List<String>> map1) {
+
+    }
+
+    @Override
+    public void removeUserAttribute(String s) {
+
+    }
+
+    @Override
+    public void setUserIdentity(MParticle.IdentityType identityType, String s) {
+
+    }
+
+    @Override
+    public void removeUserIdentity(MParticle.IdentityType identityType) {
+
+    }
+
+    @Override
+    public List<ReportingMessage> logout() {
+        return null;
     }
 }
