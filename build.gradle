@@ -8,7 +8,6 @@ buildscript {
     }
 }
 
-project.version = '4.15.1-SNAPSHOT'
 apply plugin: 'com.mparticle.kit'
 
 repositories {
