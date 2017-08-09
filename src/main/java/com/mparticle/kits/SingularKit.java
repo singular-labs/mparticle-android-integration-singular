@@ -3,6 +3,7 @@ package com.mparticle.kits;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -64,6 +65,10 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
         config = new SingularConfig(singularKey, singularSecret);
         config.withDDLTimeoutInSec(DDL_HANDLER_TIMEOUT_SEC);
         config.withDDLHandler(this);
+        Uri openUri = MParticle.getInstance().getAppStateManager().getLaunchUri();
+        if (null != openUri) {
+            config.withOpenURI(openUri);
+        }
         if (MParticle.getInstance().getEnvironment() == MParticle.Environment.Development) {
             config.withLoggingEnabled();
             config.withLogLevel(Log.DEBUG);
