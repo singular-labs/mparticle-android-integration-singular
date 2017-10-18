@@ -7,8 +7,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 
-import com.mparticle.DeepLinkListener;
-import com.mparticle.DeepLinkResult;
+import com.mparticle.AttributionResult;
 import com.mparticle.MPEvent;
 import com.mparticle.MParticle;
 import com.mparticle.commerce.CommerceEvent;
@@ -20,6 +19,7 @@ import com.singular.sdk.Singular;
 import com.singular.sdk.SingularConfig;
 import com.singular.sdk.SingularInstallReceiver;
 
+import org.json.JSONObject;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -27,8 +27,6 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import org.json.JSONObject;
 
 
 public class SingularKit extends KitIntegration implements KitIntegration.ActivityListener, KitIntegration.EventListener, KitIntegration.PushListener, KitIntegration.CommerceListener, DeferredDeepLinkHandler, KitIntegration.AttributeListener {
@@ -166,12 +164,11 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
     @Override
     public void handleLink(String link) {
         mLink = link;
-        DeepLinkListener deepLinkListener = MParticle.getInstance().getDeepLinkListener();
-        if (deepLinkListener != null && !KitUtils.isEmpty(link)) {
-            DeepLinkResult deepLinkResult = new DeepLinkResult();
-            deepLinkResult.setServiceProviderId(MParticle.ServiceProviders.SINGULAR);
-            deepLinkResult.setLink(link);
-            deepLinkListener.onResult(deepLinkResult);
+        if (!KitUtils.isEmpty(link)) {
+            AttributionResult attributionResult = new AttributionResult();
+            attributionResult.setServiceProviderId(MParticle.ServiceProviders.SINGULAR);
+            attributionResult.setLink(link);
+            getKitManager().onResult(attributionResult);
         }
     }
 
@@ -251,12 +248,6 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
             }
         }
         return messages;
-    }
-
-    @Override
-    public void checkForDeepLink() {
-        this.handleLink(mLink);
-        mLink = null;
     }
 
     @Override
