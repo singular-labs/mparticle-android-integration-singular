@@ -4,7 +4,7 @@ buildscript {
         mavenLocal()
     }
     dependencies {
-        classpath 'com.mparticle:android-kit-plugin:+'
+        classpath 'com.mparticle:android-kit-plugin:' + project.version
     }
 }
 
@@ -16,11 +16,12 @@ repositories {
     }
 }
 
-dependencies {
-    compile 'com.singular.sdk:singular_sdk:7.0.3'
+android {
+    defaultConfig {
+        minSdkVersion 14
+    }
 }
 
-android {
-    compileSdkVersion 22
-    buildToolsVersion '25.0.2'
+dependencies {
+    compile 'com.singular.sdk:singular_sdk:7.3.3'
 }
