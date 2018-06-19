@@ -14,6 +14,8 @@ import com.mparticle.commerce.CommerceEvent;
 import com.mparticle.commerce.Product;
 import com.mparticle.internal.Logger;
 import com.mparticle.internal.MPUtility;
+import com.mparticle.kits_core.KitIntegration;
+import com.mparticle.kits_core.ReportingMessage;
 import com.singular.sdk.DeferredDeepLinkHandler;
 import com.singular.sdk.Singular;
 import com.singular.sdk.SingularConfig;
@@ -29,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class SingularKit extends KitIntegration implements KitIntegration.ActivityListener, KitIntegration.EventListener, KitIntegration.PushListener, KitIntegration.CommerceListener, DeferredDeepLinkHandler, KitIntegration.AttributeListener {
+public class SingularKit extends AbstractKitIntegration implements KitIntegration.ActivityListener, KitIntegration.EventListener, KitIntegration.PushListener, KitIntegration.CommerceListener, DeferredDeepLinkHandler, KitIntegration.AttributeListener {
 
     private static final String API_KEY = "apiKey";
     private static final String API_SECRET = "secret";
@@ -50,7 +52,7 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
     private String mLink;
 
     @Override
-    protected List<ReportingMessage> onKitCreate(Map<String, String> settings, Context context) {
+    public List<ReportingMessage> onKitCreate(Map<String, String> settings, Context context) {
         singularKey = settings.get(API_KEY);
         singularSecret = settings.get(API_SECRET);
         String ddlTimeout = settings.get(DDL_TIME_OUT);
@@ -73,7 +75,7 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
         }
         Singular.init(context, config);
         List<ReportingMessage> messages = new ArrayList<ReportingMessage>();
-        messages.add(new ReportingMessage(this, ReportingMessage.MessageType.APP_STATE_TRANSITION, System.currentTimeMillis(), null));
+        messages.add(new ReportingMessageImpl(this, ReportingMessageImpl.MessageType.APP_STATE_TRANSITION, System.currentTimeMillis(), null));
         return messages;
     }
 
@@ -151,7 +153,7 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
             eventStatus = Singular.event(eventName);
         }
         if (eventStatus) {
-            messages.add(ReportingMessage.fromEvent(this, mpEvent));
+            messages.add(ReportingMessageImpl.fromEvent(this, mpEvent));
         }
         return messages;
     }
@@ -219,7 +221,7 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
                 for (int i = 0; i < eventList.size(); i++) {
                     try {
                         logEvent(eventList.get(i));
-                        messages.add(ReportingMessage.fromEvent(this, commerceEvent));
+                        messages.add(ReportingMessageImpl.fromEvent(this, commerceEvent));
                     } catch (Exception e) {
                         Logger.warning("Failed to call logCustomEvent to Singular kit: " + e.toString());
                     }
@@ -244,7 +246,7 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
                     amount = product.getTotalAmount();
                     Singular.revenue(currency, amount, productSKU, productName, productCategory, (int) productQuantity, productPrice);
                 }
-                messages.add(ReportingMessage.fromEvent(this, commerceEvent));
+                messages.add(ReportingMessageImpl.fromEvent(this, commerceEvent));
             }
         }
         return messages;
