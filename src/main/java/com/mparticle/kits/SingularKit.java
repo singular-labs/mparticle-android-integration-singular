@@ -14,8 +14,8 @@ import com.mparticle.commerce.CommerceEvent;
 import com.mparticle.commerce.Product;
 import com.mparticle.internal.Logger;
 import com.mparticle.internal.MPUtility;
-import com.mparticle.kits_core.KitIntegration;
-import com.mparticle.kits_core.ReportingMessage;
+import com.mparticle.kits.core.KitIntegration;
+import com.mparticle.kits.core.ReportingMessage;
 import com.singular.sdk.DeferredDeepLinkHandler;
 import com.singular.sdk.Singular;
 import com.singular.sdk.SingularConfig;
@@ -170,7 +170,7 @@ public class SingularKit extends AbstractKitIntegration implements KitIntegratio
             AttributionResult attributionResult = new AttributionResult();
             attributionResult.setServiceProviderId(MParticle.ServiceProviders.SINGULAR);
             attributionResult.setLink(link);
-            getKitManager().onResult(attributionResult);
+            getAttributionListener().onResult(attributionResult);
         }
     }
 
