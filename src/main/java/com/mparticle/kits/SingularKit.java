@@ -63,7 +63,7 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
         config = new SingularConfig(singularKey, singularSecret);
         config.withDDLTimeoutInSec(DDL_HANDLER_TIMEOUT_SEC);
         config.withDDLHandler(this);
-        Uri openUri = MParticle.getInstance().getAppStateManager().getLaunchUri();
+        Uri openUri = getKitManager().getLaunchUri();
         if (null != openUri) {
             config.withOpenURI(openUri);
         }
