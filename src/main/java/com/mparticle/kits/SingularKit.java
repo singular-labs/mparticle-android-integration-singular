@@ -185,13 +185,8 @@ public class SingularKit extends KitIntegration implements KitIntegration.Activi
     @Override
     public boolean onPushRegistration(String deviceToken, String senderId) {
         try {
-            switch (MPUtility.getAvailableInstanceId()) {
-                case GCM:
-                    Singular.setGCMDeviceToken(deviceToken);
-                    break;
-                case FCM:
-                    Singular.setFCMDeviceToken(deviceToken);
-                    break;
+            if (MPUtility.isFirebaseAvailable()) {
+                Singular.setFCMDeviceToken(deviceToken);
             }
         } catch (Exception unableToSetDeviceToken) {
             return false;
