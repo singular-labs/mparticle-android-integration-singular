@@ -55,6 +55,10 @@ public class SingularKit extends KitIntegration implements
     private static final String PASSTHROUGH = "passthrough";
     private static final String IS_DEFERRED = "is_deferred";
 
+    // Wrapper Consts
+    private static final String MPARTICLE_WRAPPER_NAME = "mParticle";
+    private static final String MPARTICLE_WRAPPER_VERSION = "1.0.0";
+
     private static Map<String, String> singularSettings;
 
     private SingularLog logger = SingularLog.getLogger(Singular.class.getSimpleName());
@@ -125,6 +129,8 @@ public class SingularKit extends KitIntegration implements
                 config.withLoggingEnabled();
                 config.withLogLevel(Log.DEBUG);
             }
+
+            Singular.setWrapperNameAndVersion(MPARTICLE_WRAPPER_NAME, MPARTICLE_WRAPPER_VERSION);
 
             return config;
 
