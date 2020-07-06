@@ -87,7 +87,7 @@ public class KitTests {
 
     @Test
     public void buildConfigWithoutSettings() {
-        SingularConfig testConfig = kit.buildSingularConfig(null, null);
+        SingularConfig testConfig = kit.buildSingularConfig(null);
 
         Assert.assertNull(testConfig);
     }
@@ -95,7 +95,7 @@ public class KitTests {
     @Test
     public void buildConfigWithEmptySettings() {
         SingularConfig testConfig =
-                kit.buildSingularConfig(new HashMap<String, String>(), null);
+                kit.buildSingularConfig(new HashMap<String, String>());
 
         Assert.assertNull(testConfig);
     }
@@ -108,7 +108,7 @@ public class KitTests {
 
         Mockito.when(MParticle.getInstance().getEnvironment()).thenReturn(MParticle.Environment.Production);
 
-        SingularConfig testConfig = kit.buildSingularConfig(settings, null);
+        SingularConfig testConfig = kit.buildSingularConfig(settings);
 
         Assert.assertTrue(testConfig.apiKey.equals("Test"));
         Assert.assertTrue(testConfig.secret.equals("Test"));
@@ -122,7 +122,7 @@ public class KitTests {
         Mockito.when(MPUtility.isDevEnv()).
                 thenReturn(true);
 
-        SingularConfig testConfig = kit.buildSingularConfig(settings, null);
+        SingularConfig testConfig = kit.buildSingularConfig(settings);
 
         Assert.assertTrue(testConfig.apiKey.equals("Test"));
         Assert.assertTrue(testConfig.secret.equals("Test"));

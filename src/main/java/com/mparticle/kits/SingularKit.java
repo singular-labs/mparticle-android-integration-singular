@@ -68,7 +68,7 @@ public class SingularKit extends KitIntegration implements
         // Returning the reporting message to state that the method was successful and
         // Preventing from the mParticle Kit to retry to activate to method.
         List<ReportingMessage> messages = new ArrayList<>();
-        if (Singular.init(context, buildSingularConfig(settings, context))) {
+        if (Singular.init(context, buildSingularConfig(settings))) {
             singularSettings = settings;
             messages.add(new ReportingMessage(this,
                     ReportingMessage.MessageType.APP_STATE_TRANSITION,
@@ -78,7 +78,7 @@ public class SingularKit extends KitIntegration implements
         return messages;
     }
 
-    public SingularConfig buildSingularConfig(Map<String, String> settings, Context context) {
+    public SingularConfig buildSingularConfig(Map<String, String> settings) {
         try {
             String singularKey = settings.get(API_KEY);
             String singularSecret = settings.get(API_SECRET);
@@ -96,7 +96,7 @@ public class SingularKit extends KitIntegration implements
             SingularConfig config = new SingularConfig(singularKey, singularSecret);
             config.withDDLTimeoutInSec(ddlHandlerTimeoutSec);
 
-            Activity activity = (Activity) context;
+            Activity activity = getCurrentActivity().get();
 
             if (activity != null) {
                 Intent intent = activity.getIntent();
@@ -107,10 +107,11 @@ public class SingularKit extends KitIntegration implements
                         AttributionResult attributionResult = new AttributionResult();
                         attributionResult.setServiceProviderId(MParticle.ServiceProviders.SINGULAR);
                         attributionResult.setLink(singularLinkParams.getDeeplink());
-                        JSONObject linkParams = new JSONObject();
                         try {
+                            JSONObject linkParams = new JSONObject();
                             linkParams.put(PASSTHROUGH, singularLinkParams.getPassthrough());
                             linkParams.put(IS_DEFERRED, singularLinkParams.isDeferred());
+                            attributionResult.setParameters(linkParams);
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
@@ -407,11 +408,7 @@ public class SingularKit extends KitIntegration implements
     @Override
     public void onApplicationForeground() {
         // Handling deeplinks when the application resumes from background
-        Context context = getContext();
-
-        if (context instanceof Activity){
-            Singular.init(context, buildSingularConfig(singularSettings, context));
-        }
+        Singular.init(getContext(), buildSingularConfig(singularSettings));
     }
 
     @Override
