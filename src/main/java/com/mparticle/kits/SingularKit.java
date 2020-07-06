@@ -3,7 +3,6 @@ package com.mparticle.kits;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -18,14 +17,16 @@ import com.singular.sdk.DeferredDeepLinkHandler;
 import com.singular.sdk.Singular;
 import com.singular.sdk.SingularConfig;
 import com.singular.sdk.SingularInstallReceiver;
+import com.singular.sdk.SingularLinkHandler;
+import com.singular.sdk.SingularLinkParams;
 import com.singular.sdk.internal.SingularLog;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -35,21 +36,26 @@ public class SingularKit extends KitIntegration implements
         KitIntegration.EventListener,
         KitIntegration.PushListener,
         KitIntegration.CommerceListener,
-        KitIntegration.AttributeListener,
-        DeferredDeepLinkHandler {
+        KitIntegration.ApplicationStateListener,
+        KitIntegration.AttributeListener {
 
     //region Members
 
     // Config Consts
     private static final String API_KEY = "apiKey";
     private static final String API_SECRET = "secret";
-    private static final String DDL_TIME_OUT = "ddlTimeout";
+    private static final String DDL_TIMEOUT = "ddlTimeout";
     private static final String KIT_NAME = "Singular";
 
     // User Attribute Consts
     private static final String USER_AGE_KEY = "age";
     private static final String USER_GENDER_KEY = "gender";
 
+    // Singular Link Consts
+    private static final String PASSTHROUGH = "passthrough";
+    private static final String IS_DEFERRED = "is_deferred";
+
+    private static Map<String, String> singularSettings;
 
     private SingularLog logger = SingularLog.getLogger(Singular.class.getSimpleName());
 
@@ -62,8 +68,8 @@ public class SingularKit extends KitIntegration implements
         // Returning the reporting message to state that the method was successful and
         // Preventing from the mParticle Kit to retry to activate to method.
         List<ReportingMessage> messages = new ArrayList<>();
-        if (Singular.init(context, buildSingularConfig(settings))) {
-
+        if (Singular.init(context, buildSingularConfig(settings, context))) {
+            singularSettings = settings;
             messages.add(new ReportingMessage(this,
                     ReportingMessage.MessageType.APP_STATE_TRANSITION,
                     System.currentTimeMillis(), null));
@@ -72,13 +78,13 @@ public class SingularKit extends KitIntegration implements
         return messages;
     }
 
-    public SingularConfig buildSingularConfig(Map<String, String> settings) {
+    public SingularConfig buildSingularConfig(Map<String, String> settings, Context context) {
         try {
             String singularKey = settings.get(API_KEY);
             String singularSecret = settings.get(API_SECRET);
 
             // Getting the DDL timeout from the settings. If does not exist, use 60(S) as default.
-            String ddlTimeout = settings.get(DDL_TIME_OUT);
+            String ddlTimeout = settings.get(DDL_TIMEOUT);
             long ddlHandlerTimeoutSec = 60L;
             if (!KitUtils.isEmpty(ddlTimeout)) {
                 try {
@@ -89,17 +95,32 @@ public class SingularKit extends KitIntegration implements
 
             SingularConfig config = new SingularConfig(singularKey, singularSecret);
             config.withDDLTimeoutInSec(ddlHandlerTimeoutSec);
-            config.withDDLHandler(this);
 
-            // TODO: Find out whats going on here. Speculation:
-            // Checking if the app was opened by clicking on an URI. If so, adding it to the config.
-            Uri openUri = MParticle.getInstance().getAppStateManager().getLaunchUri();
-            if (null != openUri) {
-                config.withOpenURI(openUri);
+            Activity activity = (Activity) context;
+
+            if (activity != null) {
+                Intent intent = activity.getIntent();
+
+                config.withSingularLink(intent, new SingularLinkHandler() {
+                    @Override
+                    public void onResolved(SingularLinkParams singularLinkParams) {
+                        AttributionResult attributionResult = new AttributionResult();
+                        attributionResult.setServiceProviderId(MParticle.ServiceProviders.SINGULAR);
+                        attributionResult.setLink(singularLinkParams.getDeeplink());
+                        JSONObject linkParams = new JSONObject();
+                        try {
+                            linkParams.put(PASSTHROUGH, singularLinkParams.getPassthrough());
+                            linkParams.put(IS_DEFERRED, singularLinkParams.isDeferred());
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        getKitManager().onResult(attributionResult);
+                    }
+                });
             }
 
             // If the environment is in development mode, enable logging.
-            if (MParticle.getInstance().getEnvironment() == MParticle.Environment.Development) {
+            if (MPUtility.isDevEnv()) {
                 config.withLoggingEnabled();
                 config.withLogLevel(Log.DEBUG);
             }
@@ -185,7 +206,7 @@ public class SingularKit extends KitIntegration implements
         if (mpEvent != null) {
 
             String eventName = mpEvent.getEventName();
-            Map eventInfo = mpEvent.getInfo();
+            Map eventInfo = mpEvent.getCustomAttributes();
 
             // Logging the event with the Singular API
             boolean eventStatus;
@@ -236,18 +257,7 @@ public class SingularKit extends KitIntegration implements
     @Override
     public boolean onPushRegistration(String deviceToken, String senderId) {
         // Saving the registration token to determine when the user uninstalls the app.
-        try {
-            switch (MPUtility.getAvailableInstanceId()) {
-                case GCM:
-                    Singular.setGCMDeviceToken(deviceToken);
-                    break;
-                case FCM:
-                    Singular.setFCMDeviceToken(deviceToken);
-                    break;
-            }
-        } catch (Exception unableToSetDeviceToken) {
-            return false;
-        }
+        Singular.setFCMDeviceToken(deviceToken);
         return true;
     }
 
@@ -303,7 +313,7 @@ public class SingularKit extends KitIntegration implements
         if (eventList != null) {
             for (MPEvent event : eventList) {
                 try {
-                    for (ReportingMessage message: logEvent(event)){
+                    for (ReportingMessage message : logEvent(event)) {
                         messages.add(message);
                     }
                 } catch (Exception e) {
@@ -346,7 +356,8 @@ public class SingularKit extends KitIntegration implements
                 map.put(USER_GENDER_KEY, "m");
             }
         }
-        if (map != null && !map.isEmpty()) {
+
+        if (!map.isEmpty()) {
             Singular.eventJSON("UserAttribute", new JSONObject(map));
         }
     }
@@ -373,31 +384,38 @@ public class SingularKit extends KitIntegration implements
 
     @Override
     public void setUserIdentity(MParticle.IdentityType identityType, String s) {
-
+        if (identityType == MParticle.IdentityType.CustomerId) {
+            Singular.setCustomUserId(s);
+        }
     }
 
     @Override
     public void removeUserIdentity(MParticle.IdentityType identityType) {
-
+        if (identityType == MParticle.IdentityType.CustomerId) {
+            Singular.unsetCustomUserId();
+        }
     }
 
     @Override
     public List<ReportingMessage> logout() {
-        return null;
+        Singular.unsetCustomUserId();
+        List<ReportingMessage> messageList = new ArrayList<>();
+        messageList.add(ReportingMessage.logoutMessage(this));
+        return messageList;
     }
 
-    //endregion
+    @Override
+    public void onApplicationForeground() {
+        // Handling deeplinks when the application resumes from background
+        Context context = getContext();
 
-    //region DDL Handler Implementation
+        if (context instanceof Activity){
+            Singular.init(context, buildSingularConfig(singularSettings, context));
+        }
+    }
 
     @Override
-    public void handleLink(String link) {
-        if (!KitUtils.isEmpty(link)) {
-            AttributionResult attributionResult = new AttributionResult();
-            attributionResult.setServiceProviderId(MParticle.ServiceProviders.SINGULAR);
-            attributionResult.setLink(link);
-            getKitManager().onResult(attributionResult);
-        }
+    public void onApplicationBackground() {
     }
 
     //endregion

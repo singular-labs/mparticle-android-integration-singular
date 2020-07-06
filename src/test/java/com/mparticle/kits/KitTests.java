@@ -6,21 +6,26 @@ import com.mparticle.MPEvent;
 import com.mparticle.MParticle;
 import com.mparticle.commerce.CommerceEvent;
 import com.mparticle.commerce.Product;
-import com.mparticle.internal.AppStateManager;
+import com.mparticle.internal.MPUtility;
 import com.singular.sdk.Singular;
 import com.singular.sdk.SingularConfig;
 
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
+import org.powermock.modules.junit4.rule.PowerMockRule;
+import org.robolectric.RobolectricTestRunner;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,10 +35,12 @@ import java.util.Map;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 
-@RunWith(PowerMockRunner.class)
+@RunWith(RobolectricTestRunner.class)
+@PowerMockIgnore({"org.mockito.*", "org.robolectric.*", "android.*"})
 @PrepareForTest({
         Singular.class,
         MParticle.class,
+        MPUtility.class,
         ReportingMessage.class,
         CommerceEvent.class,
         CommerceEventUtils.class,
@@ -49,6 +56,12 @@ public class KitTests {
     private static final String API_KEY = "apiKey";
     private static final String API_SECRET = "secret";
     private static final String DDL_TIME_OUT = "ddlTimeout";
+
+    @Rule
+    public PowerMockRule rule = new PowerMockRule();
+
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
 
     @Mock
     private ReportingMessage reportingMessage;
@@ -74,7 +87,7 @@ public class KitTests {
 
     @Test
     public void buildConfigWithoutSettings() {
-        SingularConfig testConfig = kit.buildSingularConfig(null);
+        SingularConfig testConfig = kit.buildSingularConfig(null, null);
 
         Assert.assertNull(testConfig);
     }
@@ -82,7 +95,7 @@ public class KitTests {
     @Test
     public void buildConfigWithEmptySettings() {
         SingularConfig testConfig =
-                kit.buildSingularConfig(new HashMap<String, String>());
+                kit.buildSingularConfig(new HashMap<String, String>(), null);
 
         Assert.assertNull(testConfig);
     }
@@ -93,15 +106,9 @@ public class KitTests {
 
         Mockito.when(MParticle.getInstance()).thenReturn(mParticle);
 
-        AppStateManager appStateManager = Mockito.mock(AppStateManager.class);
-
-        Mockito.when(MParticle.getInstance().getAppStateManager()).thenReturn(appStateManager);
-
-        Mockito.when(MParticle.getInstance().getAppStateManager().getLaunchUri()).thenReturn(null);
-
         Mockito.when(MParticle.getInstance().getEnvironment()).thenReturn(MParticle.Environment.Production);
 
-        SingularConfig testConfig = kit.buildSingularConfig(settings);
+        SingularConfig testConfig = kit.buildSingularConfig(settings, null);
 
         Assert.assertTrue(testConfig.apiKey.equals("Test"));
         Assert.assertTrue(testConfig.secret.equals("Test"));
@@ -109,45 +116,13 @@ public class KitTests {
     }
 
     @Test
-    public void buildConfigWithDDL() {
-        MParticle mParticle = Mockito.mock(MParticle.class);
-
-        Mockito.when(MParticle.getInstance()).thenReturn(mParticle);
-
-        AppStateManager appStateManager = Mockito.mock(AppStateManager.class);
-
-        Mockito.when(MParticle.getInstance().getAppStateManager()).thenReturn(appStateManager);
-
-        Mockito.when(MParticle.getInstance().getAppStateManager().getLaunchUri()).thenReturn(null);
-
-        Mockito.when(MParticle.getInstance().getEnvironment()).
-                thenReturn(MParticle.Environment.Production);
-
-        settings.put(DDL_TIME_OUT, "50");
-
-        SingularConfig testConfig = kit.buildSingularConfig(settings);
-
-        Assert.assertTrue(testConfig.apiKey.equals("Test"));
-        Assert.assertTrue(testConfig.secret.equals("Test"));
-        Assert.assertTrue(testConfig.ddlHandler.timeoutInSec == 50L);
-    }
-
-    @Test
     public void buildConfigInDevelopmentMode() {
-        MParticle mParticle = Mockito.mock(MParticle.class);
+        PowerMockito.mockStatic(MPUtility.class);
 
-        Mockito.when(MParticle.getInstance()).thenReturn(mParticle);
+        Mockito.when(MPUtility.isDevEnv()).
+                thenReturn(true);
 
-        AppStateManager appStateManager = Mockito.mock(AppStateManager.class);
-
-        Mockito.when(MParticle.getInstance().getAppStateManager()).thenReturn(appStateManager);
-
-        Mockito.when(MParticle.getInstance().getAppStateManager().getLaunchUri()).thenReturn(null);
-
-        Mockito.when(MParticle.getInstance().getEnvironment()).
-                thenReturn(MParticle.Environment.Development);
-
-        SingularConfig testConfig = kit.buildSingularConfig(settings);
+        SingularConfig testConfig = kit.buildSingularConfig(settings, null);
 
         Assert.assertTrue(testConfig.apiKey.equals("Test"));
         Assert.assertTrue(testConfig.secret.equals("Test"));
