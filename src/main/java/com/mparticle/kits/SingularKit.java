@@ -263,7 +263,9 @@ public class SingularKit extends KitIntegration implements
     @Override
     public boolean onPushRegistration(String deviceToken, String senderId) {
         // Saving the registration token to determine when the user uninstalls the app.
-        Singular.setFCMDeviceToken(deviceToken);
+        if (MPUtility.isFirebaseAvailable()) {
+            Singular.setFCMDeviceToken(deviceToken);
+        }
         return true;
     }
 
