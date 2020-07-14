@@ -152,7 +152,6 @@ public class SingularKit extends KitIntegration implements
 
     @Override
     public void setInstallReferrer(Intent intent) {
-        new SingularInstallReceiver().onReceive(getContext(), intent);
     }
 
     //endregion
