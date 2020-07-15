@@ -100,37 +100,6 @@ public class KitTests {
         Assert.assertNull(testConfig);
     }
 
-    @Test
-    public void buildConfigWithoutDDL() {
-        MParticle mParticle = Mockito.mock(MParticle.class);
-
-        Mockito.when(MParticle.getInstance()).thenReturn(mParticle);
-
-        Mockito.when(MParticle.getInstance().getEnvironment()).thenReturn(MParticle.Environment.Production);
-
-        SingularConfig testConfig = kit.buildSingularConfig(settings);
-
-        Assert.assertTrue(testConfig.apiKey.equals("Test"));
-        Assert.assertTrue(testConfig.secret.equals("Test"));
-        Assert.assertTrue(testConfig.ddlHandler.timeoutInSec == 60L);
-    }
-
-    @Test
-    public void buildConfigInDevelopmentMode() {
-        PowerMockito.mockStatic(MPUtility.class);
-
-        Mockito.when(MPUtility.isDevEnv()).
-                thenReturn(true);
-
-        SingularConfig testConfig = kit.buildSingularConfig(settings);
-
-        Assert.assertTrue(testConfig.apiKey.equals("Test"));
-        Assert.assertTrue(testConfig.secret.equals("Test"));
-        Assert.assertTrue(testConfig.logLevel == Log.DEBUG);
-        Assert.assertTrue(testConfig.enableLogging == true);
-        Assert.assertTrue(testConfig.ddlHandler.timeoutInSec == 60L);
-    }
-
     //endregion
 
     //region Log MPEvent Tests
