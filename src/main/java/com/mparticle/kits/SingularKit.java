@@ -11,6 +11,8 @@ import com.mparticle.MPEvent;
 import com.mparticle.MParticle;
 import com.mparticle.commerce.CommerceEvent;
 import com.mparticle.commerce.Product;
+import com.mparticle.consent.ConsentState;
+import com.mparticle.internal.KitManager;
 import com.mparticle.internal.Logger;
 import com.mparticle.internal.MPUtility;
 import com.singular.sdk.DeferredDeepLinkHandler;
@@ -37,6 +39,7 @@ public class SingularKit extends KitIntegration implements
         KitIntegration.PushListener,
         KitIntegration.CommerceListener,
         KitIntegration.ApplicationStateListener,
+        KitIntegration.UserAttributeListener,
         KitIntegration.AttributeListener {
 
     //region Members
@@ -57,7 +60,7 @@ public class SingularKit extends KitIntegration implements
 
     // Wrapper Consts
     private static final String MPARTICLE_WRAPPER_NAME = "mParticle";
-    private static final String MPARTICLE_WRAPPER_VERSION = "1.0.0";
+    private static final String MPARTICLE_WRAPPER_VERSION = "1.0.1";
 
     private static Map<String, String> singularSettings;
 
@@ -376,8 +379,45 @@ public class SingularKit extends KitIntegration implements
     }
 
     @Override
+    public void onIncrementUserAttribute(String s, int i, String s1, FilteredMParticleUser filteredMParticleUser) {
+
+    }
+
+    @Override
+    public void onRemoveUserAttribute(String s, FilteredMParticleUser filteredMParticleUser) {
+
+    }
+
+    @Override
+    public void onSetUserAttribute(String s, Object o, FilteredMParticleUser filteredMParticleUser) {
+
+    }
+
+    @Override
+    public void onSetUserTag(String s, FilteredMParticleUser filteredMParticleUser) {
+
+    }
+
+    @Override
+    public void onSetUserAttributeList(String s, List<String> list, FilteredMParticleUser filteredMParticleUser) {
+
+    }
+
+    @Override
+    public void onSetAllUserAttributes(Map<String, String> map, Map<String, List<String>> map1, FilteredMParticleUser filteredMParticleUser) {
+
+    }
+
+    @Override
     public boolean supportsAttributeLists() {
         return false;
+    }
+
+    @Override
+    public void onConsentStateUpdated(ConsentState consentState, ConsentState consentState1, FilteredMParticleUser filteredMParticleUser) {
+        if (consentState.getCCPAConsentState() != null) {
+            Singular.limitDataSharing(consentState.getCCPAConsentState().isConsented());
+        }
     }
 
     @Override
