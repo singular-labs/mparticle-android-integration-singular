@@ -164,14 +164,12 @@ public class SingularKit extends KitIntegration implements
     @Override
     public List<ReportingMessage> onActivityResumed(Activity activity) {
         Singular.onActivityResumed();
-        // TODO: Check the meaning of returning null here
         return null;
     }
 
     @Override
     public List<ReportingMessage> onActivityPaused(Activity activity) {
         Singular.onActivityPaused();
-        // TODO: Check the meaning of returning null here
         return null;
     }
 
@@ -333,8 +331,6 @@ public class SingularKit extends KitIntegration implements
             }
         }
 
-        messages.add(ReportingMessage.fromEvent(this, commerceEvent));
-
         return messages;
     }
 
@@ -415,7 +411,7 @@ public class SingularKit extends KitIntegration implements
 
     @Override
     public void onConsentStateUpdated(ConsentState consentState, ConsentState consentState1, FilteredMParticleUser filteredMParticleUser) {
-        if (consentState.getCCPAConsentState() != null) {
+        if (consentState != null && consentState.getCCPAConsentState() != null) {
             Singular.limitDataSharing(consentState.getCCPAConsentState().isConsented());
         }
     }

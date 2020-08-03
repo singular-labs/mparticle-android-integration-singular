@@ -10,7 +10,6 @@ buildscript {
     }
     dependencies {
         classpath 'com.mparticle:android-kit-plugin:+'
-        classpath 'com.mparticle:android-kit-base:+'
 
     }
 }
@@ -25,7 +24,6 @@ repositories {
 
 dependencies {
     api 'com.singular.sdk:singular_sdk:9.4.5'
-    implementation 'com.mparticle:android-kit-base:5.14.6'
 
     androidTestImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.1.0'
@@ -49,17 +47,3 @@ android {
 repositories {
     google()
 }
-
-
-task deleteJar(type: Delete) {
-    delete 'libs/jars/singular-kit.jar'
-}
-
-task createJar(type: Copy) {
-    from('build/intermediates/intermediate-jars/debug/')
-    into('libs/jars/')
-    include('classes.jar')
-    rename('classes.jar', 'singular-kit.jar')
-}
-
-createJar.dependsOn(deleteJar, build)
