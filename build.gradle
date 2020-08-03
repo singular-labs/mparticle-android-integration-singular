@@ -9,7 +9,7 @@ buildscript {
         google()
     }
     dependencies {
-        classpath 'com.mparticle:android-kit-plugin:+'
+        classpath 'com.mparticle:android-kit-plugin:' + project.version
 
     }
 }
