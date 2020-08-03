@@ -27,7 +27,7 @@ dependencies {
 
     androidTestImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test:runner:1.1.0'
-    androidTestImplementation 'androidx.test:rules:1.1.0'
+    androidTestImplementation 'androidx.test:rules:1.2.0'
 
     testImplementation 'org.powermock:powermock-core:2.0.4'
     testImplementation 'org.powermock:powermock-api-mockito2:2.0.2'
