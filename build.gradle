@@ -4,12 +4,13 @@ buildscript {
     }
 
     repositories {
-        google()
-        mavenCentral()
         mavenLocal()
+        mavenCentral()
+        google()
     }
     dependencies {
         classpath 'com.mparticle:android-kit-plugin:' + project.version
+
     }
 }
 
@@ -22,7 +23,19 @@ repositories {
 }
 
 dependencies {
-    api 'com.singular.sdk:singular_sdk:9.4.1'
+    api 'com.singular.sdk:singular_sdk:9.4.5'
+
+    androidTestImplementation 'junit:junit:4.12'
+    androidTestImplementation 'androidx.test:runner:1.1.0'
+    androidTestImplementation 'androidx.test:rules:1.1.0'
+
+    testImplementation 'org.powermock:powermock-core:2.0.4'
+    testImplementation 'org.powermock:powermock-api-mockito2:2.0.2'
+    testImplementation 'org.powermock:powermock-module-junit4-rule:2.0.2'
+    testImplementation 'org.powermock:powermock-module-junit4:2.0.2'
+    testImplementation 'org.powermock:powermock-classloading-xstream:2.0.2'
+    testImplementation "org.robolectric:robolectric:3.4.2"
+    testImplementation 'org.json:json:20180813'
 }
 
 android {
@@ -31,3 +44,6 @@ android {
     }
 }
 
+repositories {
+    google()
+}
