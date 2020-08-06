@@ -245,7 +245,8 @@ public class KitTests {
 
             Mockito.when(Singular.event(any(String.class))).
                     thenReturn(true);
-
+            Mockito.when(Singular.eventJSON(any(String.class), any(JSONObject.class))).
+                    thenReturn(true);
             Mockito.when(ReportingMessage.fromEvent(any(KitIntegration.class),
                     any(MPEvent.class))).
                     thenReturn(reportingMessage);
