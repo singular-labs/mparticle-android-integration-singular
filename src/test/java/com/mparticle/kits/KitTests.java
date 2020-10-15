@@ -35,21 +35,12 @@ import java.util.Map;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 
-@RunWith(RobolectricTestRunner.class)
 @PowerMockIgnore({"org.mockito.*", "org.robolectric.*", "android.*"})
-@PrepareForTest({
-        Singular.class,
-        MParticle.class,
-        MPUtility.class,
-        ReportingMessage.class,
-        CommerceEvent.class,
-        CommerceEventUtils.class,
-        Product.class})
 public class KitTests {
 
     //region Tests Setup
 
-    private SingularKit kit;
+    private MockSingularKit kit;
     private Map<String, String> settings;
     private SingularConfig config;
 
@@ -68,17 +59,12 @@ public class KitTests {
 
     @Before
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
+        //MockitoAnnotations.initMocks(this);
 
-        kit = new SingularKit();
+        kit = new MockSingularKit();
         settings = new HashMap<>();
         settings.put(API_KEY, "Test");
         settings.put(API_SECRET, "Test");
-
-        PowerMockito.mockStatic(Singular.class);
-        PowerMockito.mockStatic(MParticle.class);
-        PowerMockito.mockStatic(ReportingMessage.class);
-        PowerMockito.mockStatic(CommerceEventUtils.class);
     }
 
     //endregion
@@ -115,12 +101,7 @@ public class KitTests {
             MPEvent event = MPEvent.Builder.parseString(eventJson.toString()).build();
 
             // Mocking the Kit Methods
-            Mockito.when(Singular.eventJSON(any(String.class), any(JSONObject.class))).
-                    thenReturn(true);
-
-            Mockito.when(ReportingMessage.fromEvent(any(KitIntegration.class),
-                    any(MPEvent.class))).
-                    thenReturn(reportingMessage);
+            Singular.setAcceptEvent(true);
 
             result = kit.logEvent(event);
         } catch (Exception e) {
@@ -143,15 +124,10 @@ public class KitTests {
             eventJson.put("eventName", "Testing");
             eventJson.put("eventType", "Unknown");
             MPEvent event = MPEvent.Builder.parseString(eventJson.toString()).build();
-            event.getInfo().clear();
+            event.getCustomAttributes().clear();
 
             // Mocking the kit Methods
-            Mockito.when(Singular.event(any(String.class))).
-                    thenReturn(true);
-
-            Mockito.when(ReportingMessage.fromEvent(any(KitIntegration.class),
-                    any(MPEvent.class))).
-                    thenReturn(reportingMessage);
+            Singular.setAcceptEvent(true);
 
             result = kit.logEvent(event);
         } catch (Exception e) {
@@ -182,31 +158,12 @@ public class KitTests {
         List<ReportingMessage> result = null;
 
         try {
-            CommerceEvent commerceEvent = PowerMockito.mock(CommerceEvent.class);
-
-            Mockito.when(commerceEvent.getProductAction()).thenReturn(Product.PURCHASE);
-
-            // Creating the products list to return
-            List<Product> products = new ArrayList<>();
-            Product first = Mockito.mock(Product.class);
-            products.add(first);
-            Product second = Mockito.mock(Product.class);
-            products.add(second);
-
-            // Mocking the values of the products
-            Mockito.when(commerceEvent.getProducts()).thenReturn(products);
-            Mockito.when(commerceEvent.getCurrency()).thenReturn("USD");
-
-            Mockito.when(first.getSku()).thenReturn("Unknown");
-            Mockito.when(first.getTotalAmount()).thenReturn(2.0);
-            Mockito.when(first.getName()).thenReturn("Testing");
-            Mockito.when(first.getCategory()).thenReturn("Category");
-            Mockito.when(first.getQuantity()).thenReturn(1.0);
-            Mockito.when(first.getUnitPrice()).thenReturn(2.0);
-
-            Mockito.when(ReportingMessage.fromEvent(any(KitIntegration.class),
-                    any(CommerceEvent.class))).
-                    thenReturn(reportingMessage);
+            CommerceEvent commerceEvent = new CommerceEvent.Builder(Product.PURCHASE, new Product.Builder("Testing", "Unknown", 2.0)
+                    .quantity(1.0)
+                    .category("Category")
+                    .build())
+                    .addProduct(new Product.Builder("Unknown", "b", 1.0).build())
+                    .build();
 
             result = kit.logEvent(commerceEvent);
 
@@ -226,34 +183,13 @@ public class KitTests {
         List<ReportingMessage> result = null;
 
         try {
-            CommerceEvent commerceEvent = PowerMockito.mock(CommerceEvent.class);
+            CommerceEvent commerceEvent = new CommerceEvent.Builder(Product.DETAIL, new Product.Builder("Testing", "Unknown", 2.0)
+                    .quantity(1.0)
+                    .category("Category")
+                    .build())
+                    .addProduct(new Product.Builder("Unknown", "b", 1.0).build())
+                    .build();
 
-            // Mocking any action that is not purchase. Detail was selected randomly
-            Mockito.when(commerceEvent.getProductAction()).thenReturn(Product.DETAIL);
-
-            List<MPEvent> events = new ArrayList<>();
-
-            // Creating the event
-            JSONObject eventJson = new JSONObject();
-            eventJson.put("eventName", "Testing");
-            eventJson.put("eventType", "Unknown");
-            events.add(MPEvent.Builder.parseString(eventJson.toString()).build());
-            events.add(MPEvent.Builder.parseString(eventJson.toString()).build());
-
-            // Mocking the kit Methods
-            Mockito.when(CommerceEventUtils.expand(commerceEvent)).thenReturn(events);
-
-            Mockito.when(Singular.event(any(String.class))).
-                    thenReturn(true);
-            Mockito.when(Singular.eventJSON(any(String.class), any(JSONObject.class))).
-                    thenReturn(true);
-            Mockito.when(ReportingMessage.fromEvent(any(KitIntegration.class),
-                    any(MPEvent.class))).
-                    thenReturn(reportingMessage);
-
-            Mockito.when(ReportingMessage.fromEvent(any(KitIntegration.class),
-                    any(CommerceEvent.class))).
-                    thenReturn(reportingMessage);
 
             result = kit.logEvent(commerceEvent);
 
@@ -276,7 +212,7 @@ public class KitTests {
     public void isSingularIntegrationInFactory() throws Exception {
         KitIntegrationFactory factory = new KitIntegrationFactory();
         Map<Integer, String> integrations = factory.getKnownIntegrations();
-        String className = kit.getClass().getName();
+        String className = new SingularKit().getClass().getName();
         for (Map.Entry<Integer, String> entry : integrations.entrySet()) {
             if (entry.getValue().equals(className)) {
                 return;
