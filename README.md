@@ -17,7 +17,7 @@ This repository contains the [Singular](https://www.singular.net/) integration f
 
     ```groovy
     dependencies {
-        compile 'com.mparticle:android-singular-kit:5+'
+        implementation 'com.mparticle:android-singular-kit:5+'
     }
     ```
 2. Follow the mParticle Android SDK [quick-start](https://github.com/mParticle/mparticle-android-sdk), then rebuild and launch your app, and verify that you see `"Singular detected"` in the output of `adb logcat`.
