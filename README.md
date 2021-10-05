@@ -8,7 +8,7 @@ This repository contains the [Singular](https://www.singular.net/) integration f
 
     ```
     repositories {
-        maven { url "http://maven.singular.net"}
+        maven { url "https://maven.singular.net"}
         ...
     }
     ```
@@ -25,8 +25,8 @@ This repository contains the [Singular](https://www.singular.net/) integration f
 
 ### Documentation
 
-[Singular integration](http://docs.mparticle.com/?java#singular)
+[Singular integration](https://docs.mparticle.com/?java#singular)
 
 ### License
 
-[Apache License 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+[Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0)
