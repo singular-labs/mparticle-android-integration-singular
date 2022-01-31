@@ -34,7 +34,6 @@ import java.util.Map;
 
 
 public class SingularKit extends KitIntegration implements
-        KitIntegration.ActivityListener,
         KitIntegration.EventListener,
         KitIntegration.PushListener,
         KitIntegration.CommerceListener,
@@ -155,49 +154,6 @@ public class SingularKit extends KitIntegration implements
 
     @Override
     public void setInstallReferrer(Intent intent) {
-    }
-
-    //endregion
-
-    //region Activity Listener Implementation
-
-    @Override
-    public List<ReportingMessage> onActivityResumed(Activity activity) {
-        Singular.onActivityResumed();
-        return null;
-    }
-
-    @Override
-    public List<ReportingMessage> onActivityPaused(Activity activity) {
-        Singular.onActivityPaused();
-        return null;
-    }
-
-    //region Unimplemented (Empty Methods)
-
-    @Override
-    public List<ReportingMessage> onActivityCreated(Activity activity, Bundle bundle) {
-        return null;
-    }
-
-    @Override
-    public List<ReportingMessage> onActivityStarted(Activity activity) {
-        return null;
-    }
-
-    @Override
-    public List<ReportingMessage> onActivityStopped(Activity activity) {
-        return null;
-    }
-
-    @Override
-    public List<ReportingMessage> onActivitySaveInstanceState(Activity activity, Bundle bundle) {
-        return null;
-    }
-
-    @Override
-    public List<ReportingMessage> onActivityDestroyed(Activity activity) {
-        return null;
     }
 
     //endregion
