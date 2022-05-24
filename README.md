@@ -25,7 +25,7 @@ This repository contains the [Singular](https://www.singular.net/) integration f
 
 ### Documentation
 
-[Singular integration](https://docs.mparticle.com/?java#singular)
+[Singular integration](https://docs.mparticle.com/integrations/singular/event/)
 
 ### License
 
