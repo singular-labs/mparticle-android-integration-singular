@@ -120,7 +120,7 @@ open class SingularKit : KitIntegration(), ActivityListener, EventListener,
     }
 
     //region Unimplemented (Empty Methods)
-    override fun onActivityCreated(activity: Activity, bundle: Bundle): List<ReportingMessage> =
+    override fun onActivityCreated(activity: Activity, bundle: Bundle?): List<ReportingMessage> =
         emptyList()
 
     override fun onActivityStarted(activity: Activity): List<ReportingMessage> = emptyList()
@@ -129,7 +129,7 @@ open class SingularKit : KitIntegration(), ActivityListener, EventListener,
 
     override fun onActivitySaveInstanceState(
         activity: Activity,
-        bundle: Bundle
+        bundle: Bundle?
     ): List<ReportingMessage> = emptyList()
 
     override fun onActivityDestroyed(activity: Activity): List<ReportingMessage> = emptyList()
