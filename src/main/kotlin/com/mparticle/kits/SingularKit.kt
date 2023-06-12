@@ -14,7 +14,13 @@ import com.mparticle.commerce.Product
 import com.mparticle.consent.ConsentState
 import com.mparticle.internal.Logger
 import com.mparticle.internal.MPUtility
-import com.mparticle.kits.KitIntegration.*
+import com.mparticle.kits.KitIntegration.ActivityListener
+import com.mparticle.kits.KitIntegration.ApplicationStateListener
+import com.mparticle.kits.KitIntegration.AttributeListener
+import com.mparticle.kits.KitIntegration.CommerceListener
+import com.mparticle.kits.KitIntegration.EventListener
+import com.mparticle.kits.KitIntegration.PushListener
+import com.mparticle.kits.KitIntegration.UserAttributeListener
 import com.singular.sdk.Singular
 import com.singular.sdk.SingularConfig
 import com.singular.sdk.internal.SingularLog
@@ -26,6 +32,8 @@ open class SingularKit : KitIntegration(), ActivityListener, EventListener,
     PushListener, CommerceListener, ApplicationStateListener, UserAttributeListener,
     AttributeListener {
     private val logger = SingularLog.getLogger(Singular::class.java.simpleName)
+    private var isInitialized = false
+    private var deviceToken: String? = null
 
     //endregion
     //region Kit Integration Implementation
@@ -36,16 +44,13 @@ open class SingularKit : KitIntegration(), ActivityListener, EventListener,
         // Returning the reporting message to state that the method was successful and
         // Preventing from the mParticle Kit to retry to activate to method.
         val messages: MutableList<ReportingMessage> = ArrayList()
-        if (Singular.init(context, buildSingularConfig(settings))) {
-            singularSettings = settings
-            messages.add(
-                ReportingMessage(
-                    this,
-                    ReportingMessage.MessageType.APP_STATE_TRANSITION,
-                    System.currentTimeMillis(), null
-                )
+        messages.add(
+            ReportingMessage(
+                this,
+                ReportingMessage.MessageType.APP_STATE_TRANSITION,
+                System.currentTimeMillis(), null
             )
-        }
+        )
         return messages
     }
 
@@ -120,8 +125,10 @@ open class SingularKit : KitIntegration(), ActivityListener, EventListener,
     }
 
     //region Unimplemented (Empty Methods)
-    override fun onActivityCreated(activity: Activity, bundle: Bundle?): List<ReportingMessage> =
-        emptyList()
+    override fun onActivityCreated(activity: Activity, bundle: Bundle?): List<ReportingMessage> {
+        initializeSingular()
+        return emptyList()
+    }
 
     override fun onActivityStarted(activity: Activity): List<ReportingMessage> = emptyList()
 
@@ -140,21 +147,23 @@ open class SingularKit : KitIntegration(), ActivityListener, EventListener,
     //region Event Listener Implementation
     override fun logEvent(mpEvent: MPEvent): List<ReportingMessage>? {
         val messages: MutableList<ReportingMessage> = ArrayList()
-        val eventName = mpEvent.eventName
-        val eventInfo = mpEvent.customAttributes
+        executeIfSingularInitialized({
+            val eventName = mpEvent.eventName
+            val eventInfo = mpEvent.customAttributes
 
-        // Logging the event with the Singular API
-        val eventStatus: Boolean = if (!eventInfo.isNullOrEmpty()) {
-            Singular.eventJSON(eventName, JSONObject(eventInfo))
-        } else {
-            Singular.event(eventName)
-        }
+            // Logging the event with the Singular API
+            val eventStatus: Boolean = if (!eventInfo.isNullOrEmpty()) {
+                Singular.eventJSON(eventName, JSONObject(eventInfo))
+            } else {
+                Singular.event(eventName)
+            }
 
-        // If the Singular event logging was successful, return the message to the mParticle Kit
-        // So it won't retry the event
-        if (eventStatus) {
-            messages.add(ReportingMessage.fromEvent(this, mpEvent))
-        }
+            // If the Singular event logging was successful, return the message to the mParticle Kit
+            // So it won't retry the event
+            if (eventStatus) {
+                messages.add(ReportingMessage.fromEvent(this, mpEvent))
+            }
+        }, forceInitSingular = true, "logEvent")
         return messages
     }
 
@@ -178,10 +187,46 @@ open class SingularKit : KitIntegration(), ActivityListener, EventListener,
     //region Push Listener Implementation
     override fun onPushRegistration(deviceToken: String, senderId: String): Boolean {
         // Saving the registration token to determine when the user uninstalls the app.
-        if (MPUtility.isFirebaseAvailable()) {
-            Singular.setFCMDeviceToken(deviceToken)
-        }
+        this.deviceToken = deviceToken
+        executeIfSingularInitialized({
+            if (MPUtility.isFirebaseAvailable()) {
+                Singular.setFCMDeviceToken(deviceToken)
+            }
+        }, forceInitSingular = false, "onPushRegistration")
         return true
+    }
+
+    private fun executeIfSingularInitialized(
+        operation: () -> Unit,
+        forceInitSingular: Boolean = false,
+        operationName: String
+    ) {
+        if (isInitialized) {
+            operation.invoke()
+            Logger.debug("$operationName executed")
+        } else {
+            if (forceInitSingular) {
+                initializeSingular()
+                executeIfSingularInitialized(operation, false, operationName)
+            } else {
+                Logger.debug("$operationName can't be executed, Singular not initialized")
+            }
+        }
+    }
+
+    private fun initializeSingular() {
+        if (!isInitialized) {
+            if (Singular.init(context, buildSingularConfig(settings))) {
+                currentUser?.id?.toString()?.let { Singular.setCustomUserId(it) }
+                isInitialized = true
+                singularSettings = settings
+                deviceToken?.let { deviceToken ->
+                    if (MPUtility.isFirebaseAvailable()) {
+                        Singular.setFCMDeviceToken(deviceToken)
+                    }
+                }
+            }
+        }
     }
 
     //region Unimplemented (Empty Methods)
@@ -193,11 +238,15 @@ open class SingularKit : KitIntegration(), ActivityListener, EventListener,
     //endregion
     //region Commerce Listener Implementation
     override fun logEvent(commerceEvent: CommerceEvent): List<ReportingMessage> {
-        return if (commerceEvent.productAction == Product.PURCHASE) {
-            handlePurchaseEvents(commerceEvent)
-        } else {
-            handleNonPurchaseEvents(commerceEvent)
-        }
+        var list = emptyList<ReportingMessage>()
+        executeIfSingularInitialized(operation = {
+            if (commerceEvent.productAction == Product.PURCHASE) {
+                list = handlePurchaseEvents(commerceEvent)
+            } else {
+                list = handleNonPurchaseEvents(commerceEvent)
+            }
+        }, forceInitSingular = true, "logEvent")
+        return list
     }
 
     private fun handlePurchaseEvents(commerceEvent: CommerceEvent): List<ReportingMessage> {
@@ -264,7 +313,11 @@ open class SingularKit : KitIntegration(), ActivityListener, EventListener,
             }
         }
         if (map.isNotEmpty()) {
-            Singular.eventJSON("UserAttribute", (map as Map<*, *>?)?.let { JSONObject(it) })
+            executeIfSingularInitialized(
+                {
+                    Singular.eventJSON("UserAttribute", (map as Map<*, *>?)?.let { JSONObject(it) })
+                }, forceInitSingular = false, "setUserAttribute"
+            )
         }
     }
 
@@ -312,7 +365,9 @@ open class SingularKit : KitIntegration(), ActivityListener, EventListener,
         filteredMParticleUser: FilteredMParticleUser
     ) {
 
-        consentState.ccpaConsentState?.let { Singular.limitDataSharing(it.isConsented) }
+        executeIfSingularInitialized({
+            consentState.ccpaConsentState?.let { Singular.limitDataSharing(it.isConsented) }
+        }, forceInitSingular = false, "onConsentStateUpdated")
 
     }
 
@@ -320,26 +375,34 @@ open class SingularKit : KitIntegration(), ActivityListener, EventListener,
     override fun removeUserAttribute(s: String) {}
     override fun setUserIdentity(identityType: IdentityType, s: String) {
         if (identityType == IdentityType.CustomerId) {
-            Singular.setCustomUserId(s)
+            executeIfSingularInitialized({
+                Singular.setCustomUserId(s)
+            }, forceInitSingular = false, "setUserIdentity")
         }
     }
 
     override fun removeUserIdentity(identityType: IdentityType) {
         if (identityType == IdentityType.CustomerId) {
-            Singular.unsetCustomUserId()
+            executeIfSingularInitialized({
+                Singular.unsetCustomUserId()
+                isInitialized = false
+            }, forceInitSingular = false, "removeUserIdentity")
         }
     }
 
     override fun logout(): List<ReportingMessage> {
-        Singular.unsetCustomUserId()
         val messageList: MutableList<ReportingMessage> = ArrayList()
-        messageList.add(ReportingMessage.logoutMessage(this))
+        executeIfSingularInitialized({
+            Singular.unsetCustomUserId()
+            isInitialized = false
+            messageList.add(ReportingMessage.logoutMessage(this))
+        }, forceInitSingular = false, "logout")
         return messageList
     }
 
     override fun onApplicationForeground() {
         // Handling deeplinks when the application resumes from background
-        Singular.init(context, buildSingularConfig(singularSettings))
+        initializeSingular()
     }
 
     override fun onApplicationBackground() {} //endregion
