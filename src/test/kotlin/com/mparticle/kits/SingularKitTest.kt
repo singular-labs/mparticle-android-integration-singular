@@ -1,6 +1,7 @@
 package com.mparticle.kits
 
 import com.mparticle.MPEvent
+import com.mparticle.MParticleOptions
 import com.mparticle.commerce.CommerceEvent
 import com.mparticle.commerce.Product
 import com.singular.sdk.Singular
@@ -12,6 +13,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExpectedException
 import org.mockito.Mock
+import org.mockito.Mockito
 import org.powermock.core.classloader.annotations.PowerMockIgnore
 import org.powermock.modules.junit4.rule.PowerMockRule
 
@@ -180,11 +182,12 @@ class KitTests {
     @Throws(Exception::class)
     @Test
     fun isSingularIntegrationInFactory() {
-        val factory = KitIntegrationFactory()
-        val integrations = factory.knownIntegrations
-        val className = SingularKit().javaClass.name
+        val options = Mockito.mock(MParticleOptions::class.java)
+        val factory = KitIntegrationFactory(options)
+        val integrations = factory.supportedKits.values
+        val className = kit?.javaClass?.name.orEmpty()
         for (integration in integrations) {
-            if (integration.value == className) {
+            if (integration.name.replace("SingularKit", "MockSingularKit") == className) {
                 return
             }
         }
