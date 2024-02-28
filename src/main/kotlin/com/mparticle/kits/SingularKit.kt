@@ -21,8 +21,10 @@ import com.mparticle.kits.KitIntegration.CommerceListener
 import com.mparticle.kits.KitIntegration.EventListener
 import com.mparticle.kits.KitIntegration.PushListener
 import com.mparticle.kits.KitIntegration.UserAttributeListener
+import com.singular.sdk.SDIDAccessorHandler
 import com.singular.sdk.Singular
 import com.singular.sdk.SingularConfig
+import com.singular.sdk.SingularDeviceAttributionHandler
 import com.singular.sdk.internal.SingularLog
 import org.json.JSONException
 import org.json.JSONObject
@@ -31,6 +33,10 @@ import java.math.BigDecimal
 open class SingularKit : KitIntegration(), ActivityListener, EventListener,
     PushListener, CommerceListener, ApplicationStateListener, UserAttributeListener,
     AttributeListener {
+    
+    interface DeviceAttributionCallback : SingularDeviceAttributionHandler
+    interface SdidAccessorHandler : SDIDAccessorHandler
+
     private val logger = SingularLog.getLogger(Singular::class.java.simpleName)
     private var isInitialized = false
     private var deviceToken: String? = null
@@ -83,6 +89,14 @@ open class SingularKit : KitIntegration(), ActivityListener, EventListener,
                         val linkParams = JSONObject()
                         linkParams.put(PASSTHROUGH, singularLinkParams.passthrough)
                         linkParams.put(IS_DEFERRED, singularLinkParams.isDeferred)
+                        if (singularLinkParams.urlParameters != null) {
+                            linkParams.put(QUERY_PARAMS,
+                                (singularLinkParams.urlParameters as Map<*, *>?)?.let {
+                                    JSONObject(
+                                        it
+                                    )
+                                })
+                        }
                         attributionResult.parameters = linkParams
                     } catch (e: JSONException) {
                         e.printStackTrace()
@@ -96,6 +110,11 @@ open class SingularKit : KitIntegration(), ActivityListener, EventListener,
                 config.withLoggingEnabled()
                 config.withLogLevel(Log.DEBUG)
             }
+
+            config.deviceAttributionHandler = deviceAttributionCallback;
+
+            config.withCustomSdid(customSdid, sdidAccessorHandler);
+
             Singular.setWrapperNameAndVersion(MPARTICLE_WRAPPER_NAME, MPARTICLE_WRAPPER_VERSION)
             config
         } catch (ex: Exception) {
@@ -422,6 +441,7 @@ open class SingularKit : KitIntegration(), ActivityListener, EventListener,
         // Singular Link Consts
         private const val PASSTHROUGH = "passthrough"
         private const val IS_DEFERRED = "is_deferred"
+        private const val QUERY_PARAMS = "query_params"
 
         // Wrapper Consts
         private const val MPARTICLE_WRAPPER_NAME = "mParticle"
@@ -429,5 +449,19 @@ open class SingularKit : KitIntegration(), ActivityListener, EventListener,
         private const val CANT_BUILD_SINGULAR_CONFIG_MESSAGE =
             "Can't build Singular Config in the mParticle Kit"
         private var singularSettings: Map<String, String>? = null
+
+        private var deviceAttributionCallback: DeviceAttributionCallback? = null;
+        private var customSdid: String? = null;
+        private var sdidAccessorHandler: SdidAccessorHandler? = null;
+
+        @JvmStatic fun setDeviceAttributionCallback(deviceAttributionCallback: DeviceAttributionCallback?) {
+            this.deviceAttributionCallback = deviceAttributionCallback;
+        }
+
+        @JvmStatic fun setCustomSDID(customSDID: String?, sdidAccessorHandler: SdidAccessorHandler?) {
+            this.customSdid = customSDID
+            this.sdidAccessorHandler = sdidAccessorHandler
+        }
+
     }
 }
