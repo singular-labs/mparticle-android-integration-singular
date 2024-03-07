@@ -42,7 +42,7 @@ repositories {
 }
 
 dependencies {
-    api 'com.singular.sdk:singular_sdk:12.5.3'
+    api 'com.singular.sdk:singular_sdk:12.5.4'
 
     androidTestImplementation 'androidx.test:runner:1.5.2'
     testImplementation 'org.powermock:powermock-core:2.0.9'
